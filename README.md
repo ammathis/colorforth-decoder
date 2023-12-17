@@ -18,7 +18,7 @@ These flags are described in the help text for the program: `python colorforth_d
 
 ## Further details
 ### About colorForth 
-You can find more information about colorForth from [the wikipedia page]((https://en.wikipedia.org/wiki/ColorForth)),
+You can find more information about colorForth from [the wikipedia page](https://en.wikipedia.org/wiki/ColorForth),
 the [archive of Chuck Moore's original colorforth.com website](https://web.archive.org/web/20160414102635/http://colorforth.com/),
 [the mirror of that original website at github.io](https://colorforth.github.io/),
 and the [website for Howerd Oakford's more recent work on colorForth](https://www.inventio.co.uk/cf2023/index.html).
