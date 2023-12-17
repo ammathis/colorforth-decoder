@@ -278,7 +278,7 @@ def extract_blocks(args: Namespace) -> bytes:
         raise ValueError(f'Provided file {args.path} does not have a length of multiple 1024! Length is {all_blocks_len}.')
 
     last_block = (len(all_blocks) // 1024) - 1
-    if args.end is None:
+    if args.end is None or args.end == -1:
         end_block = last_block   # last block
     else:
         if args.end > last_block:
