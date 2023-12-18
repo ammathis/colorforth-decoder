@@ -64,4 +64,22 @@ def test_decode_letters():
     decoder.create_text_representation()
     out_lines = decoder.output_text.split('\n')
 
-    assert out_lines[1][:9] == 'w|rtoeani'
+    assert out_lines[1] == 'w|rtoeani'
+
+
+def test_magenta():
+    variable = 1  # r
+    variable = variable << (7*4)
+    variable = variable | 0xc
+
+    value = 12345
+
+    test_bytes = list(struct.pack('<i', variable))
+    test_bytes += list(struct.pack('<i', value))
+    test_bytes += [0] * (1024 - len(test_bytes))  # complete to 1024 length
+
+    decoder = BlockDecoder(test_bytes)
+    decoder.create_text_representation()
+    out_lines = decoder.output_text.split('\n')
+
+    assert out_lines[1] == 'm|r m|12345'

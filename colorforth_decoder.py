@@ -1,5 +1,5 @@
 from argparse import ArgumentParser, Namespace, ArgumentTypeError
-from typing import List, Iterator
+from typing import Iterator, Tuple
 import logging
 from collections import namedtuple
 from pathlib import Path
@@ -71,6 +71,8 @@ class BlockDecoder:
             elif length_prefix == '11':
                 letter_code = bits[cursor:cursor + 7]
                 letter_code += '0' * (7-len(letter_code))
+            else:
+                raise AssertionError()
 
             letter_int = int(letter_code, 2)
             try:
@@ -120,10 +122,17 @@ class BlockDecoder:
 
     @classmethod
     def process_long_number(cls, function_code: int, next_word_bits: str, second_word_bits: str):
+        assert function_code in (2, 5)
         is_hex = int(next_word_bits[-5], 2) > 0
         number_bits = second_word_bits
         number_parsed = int(number_bits, 2)
         return cls.process_number(number_parsed, is_hex, len(number_bits))
+
+    @classmethod
+    def process_magenta(cls, function_code: int, next_word_bits: str, second_word_bits: str) -> Tuple[str, str]:
+        variable_name = cls.process_text(function_code, next_word_bits)
+        value = str(int(second_word_bits, 2))  # apparently the value is just encoded raw
+        return variable_name, value
 
     @staticmethod
     def extract_function_code(bits: str) -> int:
@@ -134,7 +143,7 @@ class BlockDecoder:
         """
         return int(bits[-4:], 2)
 
-    def consume_next_word(self) -> List[str]:
+    def consume_next_word(self) -> str:
         """
         Consume the next 32-bit word
         :return:
@@ -158,11 +167,11 @@ class BlockDecoder:
             next_word_bits = self.consume_next_word()
             function_code = self.extract_function_code(next_word_bits)
 
-            if function_code in [0, 1, 3, 4, 7, 9, 0xa, 0xb, 0xc, 0xd, 0xe]:
-                extracted_val = self.process_text(function_code, next_word_bits)
+            if function_code in [0, 1, 3, 4, 7, 9, 0xa, 0xb, 0xd, 0xe]:
+                extracted_vals = [self.process_text(function_code, next_word_bits)]
             elif function_code in [6, 8]:
-                extracted_val = self.process_short_number(function_code, next_word_bits)
-            elif function_code in [2, 5]:
+                extracted_vals = [self.process_short_number(function_code, next_word_bits)]
+            elif function_code in [2, 5, 0xc]:
                 if self.has_next_word():
                     second_word_bits = self.consume_next_word()
                 else:
@@ -170,15 +179,21 @@ class BlockDecoder:
                     # our block. Default to zero I guess?
                     second_word_bits = '0'*32
                 try:
-                    extracted_val = self.process_long_number(function_code, next_word_bits, second_word_bits)
+                    if function_code in [2, 5]:
+                        extracted_vals = [self.process_long_number(function_code, next_word_bits, second_word_bits)]
+                    elif function_code in [0xc]:
+                        extracted_vals = self.process_magenta(function_code, next_word_bits, second_word_bits)
+                    else:
+                        raise AssertionError()
                 except ValueError as e:
                     raise
             else:
                 logger.warning(f'Unrecognized function code: {function_code}!')
-                extracted_val = '???'
+                extracted_vals = ['???']
 
             color = self.function_code_to_color.get(function_code, '???')
-            yield color, extracted_val
+            for val in extracted_vals:
+                yield color, val
 
     def decode_with_cont_handling(self) -> Iterator[str]:
         """
